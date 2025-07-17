@@ -30,6 +30,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write  # required to push to gh-pages
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -88,3 +91,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GHTOKEN }}
         if: github.event_name == 'workflow_dispatch'
         # This condition ensures this step only runs for workflow_dispatch events.
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+            github_token: ${{ secrets.GHTOKEN }}
+            publish_dir: ${{ github.workspace }}/build/
