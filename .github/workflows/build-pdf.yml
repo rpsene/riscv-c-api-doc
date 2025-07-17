@@ -25,16 +25,18 @@ on:
         type: boolean
         default: false
 
-  pull_request:
-
   push:
     branches:
       - main
 
+  pull_request:
+    branches:
+      - main
+
 permissions:
-  contents: write       # Needed for creating a release
-  pages: write          # Needed to deploy to GitHub Pages
-  id-token: write       # Needed for authentication with GitHub Pages
+  contents: write        # Required for creating releases
+  pages: write           # Required for GitHub Pages deployment
+  id-token: write        # Required for GitHub Pages authentication
 
 jobs:
   build:
@@ -53,10 +55,10 @@ jobs:
           scheme: semver
           increment: patch
 
-      - name: Pull Container
+      - name: Pull RISC-V Docs container
         run: docker pull riscvintl/riscv-docs-base-container-image:latest
 
-      - name: Update environment variables
+      - name: Set environment variables for workflow_dispatch
         if: github.event_name == 'workflow_dispatch'
         run: |
           echo "VERSION=v${{ steps.version.outputs.version }}" >> "$GITHUB_ENV"
@@ -65,7 +67,7 @@ jobs:
       - name: Build Files
         run: make
 
-      - name: Upload Build Artifacts
+      - name: Upload Build Artifacts (PDF & HTML)
         uses: actions/upload-artifact@v4
         with:
           name: Build Artifacts
@@ -74,7 +76,7 @@ jobs:
             ${{ github.workspace }}/build/*.html
           retention-days: 30
 
-      - name: Create Release
+      - name: Create GitHub Release
         if: github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v1
         with:
@@ -88,13 +90,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GHTOKEN }}
 
-      - name: Prepare GitHub Pages directory
+      - name: Prepare GitHub Pages content
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           mkdir -p dist
-          cp ${{ github.workspace }}/build/*.html dist/
+          cp build/riscv-c-api.html dist/index.html
 
-      - name: Upload Pages Artifact
+      - name: Upload GitHub Pages artifact
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
@@ -108,6 +110,10 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
+    permissions:
+      pages: write
+      id-token: write
 
     steps:
       - name: Deploy to GitHub Pages
